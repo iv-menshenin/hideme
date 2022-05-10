@@ -37,7 +37,7 @@ func (n *nibble) Next() (byte, bool) {
 	bitIndex := (n.current * n.size) % bitsInByte
 	n.current++
 	word := int16(n.data[byteIndex])
-	if len(n.data) > byteIndex+1 { // && bitIndex > bitsInByte - n.size
+	if len(n.data) > byteIndex+1 && bitIndex > bitsInByte-n.size {
 		word |= int16(n.data[byteIndex+1]) << bitsInByte
 	}
 	result := (word >> bitIndex) & n.mask
