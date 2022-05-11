@@ -37,6 +37,7 @@ func Test_encodeColor(t *testing.T) {
 
 func TestPNGCarrier(t *testing.T) {
 	const tmpFileName = "./test/tmp.png"
+	defer os.Remove(tmpFileName)
 	var data = []uint8{0, 1, 2, 3, 4, 5, 6, 7, 0, 11, 12, 13, 14, 15, 26, 27, 100, 111, 112, 113, 114, 125, 126, 147, 160, 171, 182, 193, 214, 215, 226, 237, 250, 255}
 
 	makePNGCarrier(t, data, tmpFileName)
