@@ -16,14 +16,19 @@ type cmd struct {
 	output  string
 }
 
+const (
+	cmdInject  = "inject"
+	cmdExtract = "extract"
+)
+
 func main() {
 	if len(os.Args) < 2 {
-		log.Fatal("available commands: encode, decode")
+		log.Fatalf("available commands: %s, %s", cmdInject, cmdExtract)
 	}
 
 	var config = parseCmd(os.Args[1], os.Args[2:])
 	switch config.command {
-	case "encode":
+	case cmdInject:
 		if config.input == "" {
 			log.Fatal("`carrier` parameter cannot be empty")
 		}
@@ -33,13 +38,13 @@ func main() {
 		if config.payload == "" {
 			log.Fatal("`payload` parameter cannot be empty")
 		}
-		encode(config.payload, config.input, config.output)
+		inject(config.payload, config.input, config.output)
 
-	case "decode":
+	case cmdExtract:
 		if config.input == "" {
 			log.Fatal("`input` parameter cannot be empty")
 		}
-		decode(config.input)
+		extract(config.input)
 
 	}
 }
@@ -47,25 +52,29 @@ func main() {
 func parseCmd(toDo string, args []string) cmd {
 	var command = cmd{command: toDo}
 	switch toDo {
-	case "encode":
+	case cmdInject:
 		fs := flag.NewFlagSet(toDo, flag.ExitOnError)
 		fs.StringVar(&command.input, "carrier", "", "A PNG file that will carry the valuable information")
 		fs.StringVar(&command.payload, "payload", "", "The file you want to hide from prying eyes")
 		fs.StringVar(&command.output, "out", "", "The final file, which does not differ from the original file. But it contains encrypted information")
-		fs.Parse(args)
+		if err := fs.Parse(args); err != nil {
+			log.Fatal(err)
+		}
 
-	case "decode":
+	case cmdExtract:
 		fs := flag.NewFlagSet(toDo, flag.ExitOnError)
 		fs.StringVar(&command.input, "input", "", "A file that carries hidden information")
-		fs.Parse(args)
+		if err := fs.Parse(args); err != nil {
+			log.Fatal(err)
+		}
 
 	default:
-		log.Fatalf("available commands: encode, decode\nunknown command: %s", toDo)
+		log.Fatalf("available commands: %s, %s\nunknown command: %s", cmdInject, cmdExtract, toDo)
 	}
 	return command
 }
 
-func encode(payload, source, outFile string) {
+func inject(payload, source, outFile string) {
 	msg, err := message.New(payload)
 	if err != nil {
 		log.Fatalf("cannot prepare msg: %s", err)
@@ -84,7 +93,7 @@ func encode(payload, source, outFile string) {
 	}
 }
 
-func decode(payload string) {
+func extract(payload string) {
 	carr, err := getCarrier(payload)
 	if err != nil {
 		log.Fatalf("cannot prepare carrier file: %s", err)
