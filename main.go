@@ -146,16 +146,17 @@ func extract(config cmd) error {
 	for i, msg := range msgs {
 		switch config.publicKey != "" {
 
-		// unsigned
+		// without sign checking
 		case false:
 			if msg.FileName() == signFileName {
-				log.Println("the signature is not verified")
+				// not give away our secret that the file is signed
+				continue
 			}
 			if err = saveFile(&msg); err != nil {
 				return fmt.Errorf("cannot save file `%s`: %w", msg.FileName(), err)
 			}
 
-		// signed
+		// with sign checking
 		case true:
 			if msg.FileName() == signFileName {
 				if i == 0 {
