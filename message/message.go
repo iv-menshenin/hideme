@@ -2,6 +2,7 @@ package message
 
 import (
 	"bytes"
+	"io"
 	"io/ioutil"
 	"math"
 	"os"
@@ -19,24 +20,24 @@ type (
 
 const fileNameMaxLen = 64
 
-func New(fileName string) (*message, error) {
+func NewFromFile(fileName string) (*message, error) {
 	f, err := os.Open(fileName)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
 
-	stat, err := f.Stat()
+	data, err := ioutil.ReadAll(f)
 	if err != nil {
 		return nil, err
 	}
+	return NewFromBytes(fileName, data)
+}
 
+func NewFromBytes(fileName string, data []byte) (*message, error) {
 	m := message{
-		fileSize: stat.Size(),
-	}
-	m.content, err = ioutil.ReadAll(f)
-	if err != nil {
-		return nil, err
+		fileSize: int64(len(data)),
+		content:  data,
 	}
 	m.setFileName(path.Base(fileName))
 	return &m, nil
@@ -57,19 +58,29 @@ func (m *message) Encode() []byte {
 	return result.Bytes()
 }
 
-func Decode(data []byte) (*message, error) {
-	var m message
+func Decode(data []byte) ([]message, error) {
+	var messages []message
 	var r = bytes.NewReader(data)
 
-	if err := m.fillFileName(r); err != nil {
-		return nil, err
+	for {
+		var m message
+		if err := m.fillFileName(r); err != nil {
+			return nil, err
+		}
+		if err := m.fillFileContent(r); err != nil {
+			return nil, err
+		}
+		messages = append(messages, m)
+		// checking
+		_, err := r.ReadByte()
+		if err == io.EOF {
+			break
+		}
+		if err = r.UnreadByte(); err != nil {
+			return nil, err
+		}
 	}
-
-	if err := m.fillFileContent(r); err != nil {
-		return nil, err
-	}
-
-	return &m, nil
+	return messages, nil
 }
 
 func int64b(i int64) (result [8]byte) {
