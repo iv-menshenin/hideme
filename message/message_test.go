@@ -17,9 +17,12 @@ func TestNew(t *testing.T) {
 	if m.FileName() != allowedName {
 		t.Errorf("want: %s, got: %s", allowedName, m.FileName())
 	}
-	data := m.Serialize()
-	var newM = &message{}
-	newM.Deserialize(data)
+	data := m.Encode()
+	newM, err := Decode(data)
+	if err != nil {
+		t.Errorf("decoding error: %s", err)
+		return
+	}
 	if !reflect.DeepEqual(m, newM) {
 		t.Errorf("matching error\nwant: %+v\n got: %+v", m, newM)
 	}

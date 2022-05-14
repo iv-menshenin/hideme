@@ -84,7 +84,7 @@ func inject(payload, source, outFile string) {
 	if err != nil {
 		log.Fatalf("cannot prepare carrier file: %s", err)
 	}
-	secretData := msg.Serialize()
+	secretData := msg.Encode()
 	if err = carr.Inject(secretData); err != nil {
 		log.Fatalf("cannot inject secret data to image: %s", err)
 	}
@@ -99,7 +99,11 @@ func extract(payload string) {
 		log.Fatalf("cannot prepare carrier file: %s", err)
 	}
 	data := carr.GetPayload()
-	msg := message.FromData(data)
+	msg, err := message.Decode(data)
+	if err != nil {
+		log.Fatalf("cannot decode file from data: %s", err)
+	}
+
 	f, err := os.Create("./_" + msg.FileName())
 	if err != nil {
 		log.Fatalf("cannot create new file `%s`: %s", msg.FileName(), err)
