@@ -18,6 +18,7 @@ type cmd struct {
 	output     string
 	privateKey string
 	publicKey  string
+	syncKey    []byte
 }
 
 const (
@@ -72,16 +73,34 @@ func parseCmd(toDo string, args []string) cmd {
 		fs.StringVar(&command.payload, "payload", "", "The file you want to hide from prying eyes")
 		fs.StringVar(&command.output, "out", "", "The final file, which does not differ from the original file. But it contains encrypted information")
 		fs.StringVar(&command.privateKey, "private", "", "Private key file path")
+		var syncKeyFileName string
+		fs.StringVar(&syncKeyFileName, "encode-key", "", "Synchronous key file")
 		if err := fs.Parse(args); err != nil {
 			log.Fatal(err)
+		}
+		if syncKeyFileName != "" {
+			var err error
+			command.syncKey, err = os.ReadFile(syncKeyFileName)
+			if err != nil {
+				log.Fatalf("cannot open sync file: %s", err)
+			}
 		}
 
 	case cmdExtract:
 		fs := flag.NewFlagSet(toDo, flag.ExitOnError)
 		fs.StringVar(&command.input, "input", "", "A file that carries hidden information")
 		fs.StringVar(&command.publicKey, "public", "", "Public key file path")
+		var syncKeyFileName string
+		fs.StringVar(&syncKeyFileName, "decode-key", "", "Synchronous key file")
 		if err := fs.Parse(args); err != nil {
 			log.Fatal(err)
+		}
+		if syncKeyFileName != "" {
+			var err error
+			command.syncKey, err = os.ReadFile(syncKeyFileName)
+			if err != nil {
+				log.Fatalf("cannot open sync file: %s", err)
+			}
 		}
 
 	case cmdGenerate:
@@ -123,6 +142,13 @@ func inject(config cmd) error {
 		secretData = append(secretData, signed.Encode()...)
 	}
 
+	if len(config.syncKey) > 0 {
+		err = crypt.EncryptDecryptData(secretData, config.syncKey)
+		if err != nil {
+			return fmt.Errorf("cannot encode data by key: %w", err)
+		}
+	}
+
 	if err = carr.Inject(secretData); err != nil {
 		return fmt.Errorf("cannot inject secret data to image: %w", err)
 	}
@@ -138,6 +164,14 @@ func extract(config cmd) error {
 		return fmt.Errorf("cannot prepare carrier file: %w", err)
 	}
 	data := carr.GetPayload()
+
+	if len(config.syncKey) > 0 {
+		err = crypt.EncryptDecryptData(data, config.syncKey)
+		if err != nil {
+			return fmt.Errorf("cannot encode data by key: %w", err)
+		}
+	}
+
 	msgs, err := message.Decode(data)
 	if err != nil {
 		return fmt.Errorf("cannot decode file from data: %w", err)
