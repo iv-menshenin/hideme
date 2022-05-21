@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"github.com/iv-menshenin/hideme/crypt"
@@ -19,6 +20,7 @@ type cmd struct {
 	privateKey string
 	publicKey  string
 	syncKey    []byte
+	aesKey     []byte
 }
 
 const (
@@ -66,6 +68,9 @@ func main() {
 
 func parseCmd(toDo string, args []string) cmd {
 	var command = cmd{command: toDo}
+	var syncKeyFileName string
+	var aesKey string
+
 	switch toDo {
 	case cmdInject:
 		fs := flag.NewFlagSet(toDo, flag.ExitOnError)
@@ -73,34 +78,20 @@ func parseCmd(toDo string, args []string) cmd {
 		fs.StringVar(&command.payload, "payload", "", "The file you want to hide from prying eyes")
 		fs.StringVar(&command.output, "out", "", "The final file, which does not differ from the original file. But it contains encrypted information")
 		fs.StringVar(&command.privateKey, "private", "", "Private key file path")
-		var syncKeyFileName string
 		fs.StringVar(&syncKeyFileName, "encode-key", "", "Synchronous key file")
+		fs.StringVar(&aesKey, "aes-key", "", "AES key hex data")
 		if err := fs.Parse(args); err != nil {
 			log.Fatal(err)
-		}
-		if syncKeyFileName != "" {
-			var err error
-			command.syncKey, err = os.ReadFile(syncKeyFileName)
-			if err != nil {
-				log.Fatalf("cannot open sync file: %s", err)
-			}
 		}
 
 	case cmdExtract:
 		fs := flag.NewFlagSet(toDo, flag.ExitOnError)
 		fs.StringVar(&command.input, "input", "", "A file that carries hidden information")
 		fs.StringVar(&command.publicKey, "public", "", "Public key file path")
-		var syncKeyFileName string
 		fs.StringVar(&syncKeyFileName, "decode-key", "", "Synchronous key file")
+		fs.StringVar(&aesKey, "aes-key", "", "AES key hex data")
 		if err := fs.Parse(args); err != nil {
 			log.Fatal(err)
-		}
-		if syncKeyFileName != "" {
-			var err error
-			command.syncKey, err = os.ReadFile(syncKeyFileName)
-			if err != nil {
-				log.Fatalf("cannot open sync file: %s", err)
-			}
 		}
 
 	case cmdGenerate:
@@ -113,6 +104,21 @@ func parseCmd(toDo string, args []string) cmd {
 	default:
 		log.Fatalf("available commands: %s, %s\nunknown command: %s", cmdInject, cmdExtract, toDo)
 	}
+
+	var err error
+	if syncKeyFileName != "" {
+		command.syncKey, err = os.ReadFile(syncKeyFileName)
+		if err != nil {
+			log.Fatalf("cannot open sync file: %s", err)
+		}
+	}
+	if aesKey != "" {
+		command.aesKey, err = hex.DecodeString(aesKey)
+		if err != nil {
+			log.Fatalf("cannot parse aes key as HEX data: %s", err)
+		}
+	}
+
 	return command
 }
 
@@ -142,6 +148,13 @@ func inject(config cmd) error {
 		secretData = append(secretData, signed.Encode()...)
 	}
 
+	if len(config.aesKey) > 0 {
+		secretData, err = crypt.EncryptDataAES(secretData, config.aesKey)
+		if err != nil {
+			return fmt.Errorf("cannot encrypt data by aes: %w", err)
+		}
+	}
+
 	if len(config.syncKey) > 0 {
 		err = crypt.EncryptDecryptData(secretData, config.syncKey)
 		if err != nil {
@@ -169,6 +182,13 @@ func extract(config cmd) error {
 		err = crypt.EncryptDecryptData(data, config.syncKey)
 		if err != nil {
 			return fmt.Errorf("cannot encode data by key: %w", err)
+		}
+	}
+
+	if len(config.aesKey) > 0 {
+		data, err = crypt.DecryptDataAES(data, config.aesKey)
+		if err != nil {
+			return fmt.Errorf("cannot decrypt data by aes: %w", err)
 		}
 	}
 
