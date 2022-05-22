@@ -12,23 +12,29 @@ func EncryptDataAES(data []byte, key []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	var bl = block.BlockSize()
+	var chainSize = block.BlockSize()
 	var l = len(data)
 	var sl = strconv.FormatInt(int64(l), 10)
-	sl = strings.Repeat("0", bl-len(sl)) + sl
+	sl = strings.Repeat("0", chainSize-len(sl)) + sl
 
-	var result = make([]byte, len(data)+bl*2)
-	var resultChains = len(data) / bl
-	if resultChains*bl < len(data) {
+	var result = make([]byte, len(data)+chainSize*2)
+	var resultChains = len(data) / chainSize
+	if resultChains*chainSize < len(data) {
+		addSz := len(data) - resultChains*chainSize
 		resultChains++
-		data = append(data, bytes.Repeat([]byte{12}, bl)...)
+		// add some salt to last chain
+		if len(data) > chainSize {
+			data = append(data, data[len(data)-chainSize-addSz:len(data)-addSz]...)
+		} else {
+			data = append(data, bytes.Repeat([]byte{data[0]}, addSz)...)
+		}
 	}
-	var resultLen = (resultChains + 1) * bl
+	var resultLen = (resultChains + 1) * chainSize
 	result = result[:resultLen]
-	block.Encrypt(result[:bl], []byte(sl))
+	block.Encrypt(result[:chainSize], []byte(sl))
 	var n = 1
 	for {
-		block.Encrypt(result[n*bl:(n+1)*bl], data[(n-1)*bl:n*bl])
+		block.Encrypt(result[n*chainSize:(n+1)*chainSize], data[(n-1)*chainSize:n*chainSize])
 		n++
 		if n > resultChains {
 			break
