@@ -40,7 +40,11 @@ func EncryptDataAES(data []byte, key []byte) ([]byte, error) {
 	block.Encrypt(result[:chainSize], []byte(sl))
 	var n = 1
 	for {
-		block.Encrypt(result[n*chainSize:(n+1)*chainSize], data[(n-1)*chainSize:n*chainSize])
+		var a, b = result[n*chainSize : (n+1)*chainSize], data[(n-1)*chainSize : n*chainSize]
+		block.Encrypt(a, b)
+		if block, err = aes.NewCipher(xorData(a, b)); err != nil {
+			return nil, err
+		}
 		n++
 		if n > resultChains {
 			break
@@ -86,11 +90,26 @@ func DecryptDataAES(data []byte, key []byte) ([]byte, error) {
 
 	var n = 0
 	for {
-		block.Decrypt(result[n*bl:(n+1)*bl], data[(n+1)*bl:(n+2)*bl])
+		var a, b = result[n*bl : (n+1)*bl], data[(n+1)*bl : (n+2)*bl]
+		block.Decrypt(a, b)
+		if block, err = aes.NewCipher(xorData(a, b)); err != nil {
+			return nil, err
+		}
 		n++
 		if n > resultChains-2 {
 			break
 		}
 	}
 	return result[:dataLen], nil
+}
+
+func xorData(a, b []byte) []byte {
+	if len(a) != len(b) {
+		panic("must be same len")
+	}
+	var result = make([]byte, len(a))
+	for i := 0; i < len(a); i++ {
+		result[i] = a[i] ^ b[i]
+	}
+	return result
 }
