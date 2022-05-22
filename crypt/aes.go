@@ -3,8 +3,8 @@ package crypt
 import (
 	"bytes"
 	"crypto/aes"
+	"crypto/rand"
 	"strconv"
-	"strings"
 )
 
 func EncryptDataAES(data []byte, key []byte) ([]byte, error) {
@@ -14,8 +14,14 @@ func EncryptDataAES(data []byte, key []byte) ([]byte, error) {
 	}
 	var chainSize = block.BlockSize()
 	var l = len(data)
-	var sl = strconv.FormatInt(int64(l), 10)
-	sl = strings.Repeat("0", chainSize-len(sl)) + sl
+	var sl = []byte(strconv.FormatInt(int64(l), 10))
+	for i := len(sl); i < chainSize; i++ {
+		if data[i] >= '0' || data[i] <= '9' {
+			sl = append([]byte{getRandByteNaN()}, sl...)
+			continue
+		}
+		sl = append([]byte{data[i]}, sl...)
+	}
 
 	var result = make([]byte, len(data)+chainSize*2)
 	var resultChains = len(data) / chainSize
@@ -44,6 +50,18 @@ func EncryptDataAES(data []byte, key []byte) ([]byte, error) {
 	return result, nil
 }
 
+func getRandByteNaN() byte {
+	var b = make([]byte, 1)
+	for {
+		if _, err := rand.Read(b[:1]); err != nil {
+			panic(err) // newer happens
+		}
+		if b[0] < '0' || b[0] > '9' {
+			return b[0]
+		}
+	}
+}
+
 func DecryptDataAES(data []byte, key []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -52,8 +70,14 @@ func DecryptDataAES(data []byte, key []byte) ([]byte, error) {
 	var bl = block.BlockSize()
 	var lz = make([]byte, bl)
 	block.Decrypt(lz, data[:bl])
+	var lenStart = 0
+	for ; lenStart < len(lz); lenStart++ {
+		if lz[lenStart] >= '0' && lz[lenStart] <= '9' {
+			break
+		}
+	}
 
-	dataLen, err := strconv.ParseInt(string(lz), 10, 64)
+	dataLen, err := strconv.ParseInt(string(lz[lenStart:]), 10, 64)
 	if err != nil {
 		return nil, err
 	}
