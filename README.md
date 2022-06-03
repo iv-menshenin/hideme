@@ -66,3 +66,25 @@ Then without knowing my private key he will not be able to fool my friend.
         --out=./encoded.png \
         --private=./rsa_key
 ```
+
+## file extraction
+
+How can my friend get the hidden file and verify its digital signature?
+```shell
+    ./hideme extract \
+        --input=./encoded.png \
+        --public=./rsa_key.pub \
+        --decode-key=./crypt-key.jpg \
+        --aes-key=af012453af01245305f76a0005f76a00
+
+    2022/06/03 16:36:01 the signature is verified well
+```
+If you see this message at the bottom (I mean "the signature is verified well"), then the digital signature has been successfully verified.
+Otherwise, the digital signature is not valid. Information about the presence of a digital signature in case of failure is not disclosed for security reasons.
+
+## help
+
+You can get help with application launch options. To do this, simply type:
+```shell
+    ./hideme help
+```

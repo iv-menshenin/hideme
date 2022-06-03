@@ -94,6 +94,10 @@ func parseCmd(toDo string, args []string) cmd {
 			log.Fatal(err)
 		}
 
+	case "--help", "-h", "help":
+		fmt.Print(helpInformation)
+		os.Exit(0)
+
 	case cmdGenerate:
 		fs := flag.NewFlagSet(toDo, flag.ExitOnError)
 		fs.StringVar(&command.output, "out", "rsa_key", "Private key file name. `rsa_key` by default.")
@@ -102,7 +106,7 @@ func parseCmd(toDo string, args []string) cmd {
 		}
 
 	default:
-		log.Fatalf("available commands: %s, %s\nunknown command: %s", cmdInject, cmdExtract, toDo)
+		log.Fatalf("available commands: %v\nunknown command: %s", []string{cmdInject, cmdExtract, cmdGenerate}, toDo)
 	}
 
 	var err error
