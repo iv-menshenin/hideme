@@ -6,34 +6,63 @@ So I decided to expand on that idea. And here is the result.
 
 ## data transfer
 
-I want to transfer a file to my friend. I can only use public channels. Maybe file storage, maybe unsecured email, whatever. I can ...
+I want to transfer a file to my friend. I can only use public channels. Maybe file storage, maybe unsecured email, whatever.
+I have to take the PNG image and my payload file and pass them as parameters to the `inject` command.
 
-```sh
-    ./hideme inject --payload=./original.jpg --carrier=./carrier.png --out=./encoded.png
+```shell
+    ./hideme inject \
+        --payload=./original.jpg \
+        --carrier=./carrier.png \
+        --out=./encoded.png
 ```
 
 ## data encryption
 
-I want to encrypt my data, I have to protect my data
+I want to encrypt my data, I have to protect my data.
 
-I can encrypt it with AES
-```sh
-./hideme inject --payload=./original.jpg --carrier=./carrier.png --out=./encoded.png --aes-key=af012453af01245305f76a0005f76a00
+Let's say that I have agreed in advance with my friend to use a particular encryption key.
+I can encrypt data with AES by specifying the `aes-key` parameter.
+```shell
+    ./hideme inject \
+        --payload=./original.jpg \
+        --carrier=./carrier.png \
+        --out=./encoded.png \
+        --aes-key=af012453af01245305f76a0005f76a00
 ```
 
-I can encrypt it with a key that is equal to (or greater than) the length of the original message
-```sh
-./hideme inject --payload=./original.jpg --carrier=./carrier.png --out=./encoded.png --encode-key=./crypt-key.jpg
+I can encrypt it with a key that is equal to (or greater) than length of the original message.
+Suppose I make an agreement with a friend of mine that at a certain time of a certain day I will send him a file over the Internet.
+This file will be the encryption key. Some time later, on a different day, I send my encrypted message.
+I can encrypt my message by specifying the `encode-key` parameter. 
+```shell
+    ./hideme inject \
+        --payload=./original.jpg \
+        --carrier=./carrier.png \
+        --out=./encoded.png \
+        --encode-key=./crypt-key.jpg
 ```
 
-Or both
-```sh
-./hideme inject --payload=./original.jpg --carrier=./carrier.png --out=./encoded.png --encode-key=./crypt-key.jpg --aes-key=af012453af01245305f76a0005f76a00
+The tool supports double encryption. I can use both approaches.
+```shell
+    ./hideme inject \
+        --payload=./original.jpg \
+        --carrier=./carrier.png \
+        --out=./encoded.png \
+        --encode-key=./crypt-key.jpg \
+        --aes-key=af012453af01245305f76a0005f76a00
 ```
 
 ## digital signature
 
-```sh
-./hideme keys
-./hideme inject --payload=./original.jpg --carrier=./carrier.png --out=./encoded.png --private=./rsa_key
+Let's imagine that my friend needs to ensure that the decoded data is not edited by the man in the middle (MITM).
+I can sign with my private async key and give my friend the public key so that he can verify the signature.
+Now, if the MITM is able to change the message (let's assume that he revealed our keys).
+Then without knowing my private key he will not be able to fool my friend.
+```shell
+    ./hideme keys &&
+    ./hideme inject \
+        --payload=./original.jpg \
+        --carrier=./carrier.png \
+        --out=./encoded.png \
+        --private=./rsa_key
 ```
