@@ -88,3 +88,6 @@ You can get help with application launch options. To do this, simply type:
 ```shell
     ./hideme help
 ```
+
+Well, in order to help the author of the project. Just learn programming, learn new techniques, practice making your applications stable and secure.
+We have so much bad code so far
