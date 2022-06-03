@@ -4,11 +4,11 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
-	"github.com/iv-menshenin/hideme/crypt"
 	"log"
 	"os"
 
 	"github.com/iv-menshenin/hideme/carrier"
+	"github.com/iv-menshenin/hideme/crypt"
 	"github.com/iv-menshenin/hideme/message"
 )
 
