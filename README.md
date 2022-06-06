@@ -55,7 +55,7 @@ The tool supports double encryption. I can use both approaches.
 ## digital signature
 
 Let's imagine that my friend needs to ensure that the decoded data is not edited by the man in the middle (MITM).
-I can sign with my private async key and give my friend the public key so that he can verify the signature.
+I can sign my payload with private async key and give my friend the public key so that he can verify the signature.
 Now, if the MITM is able to change the message (let's assume that he revealed our keys).
 Then without knowing my private key he will not be able to fool my friend.
 ```shell
@@ -70,6 +70,7 @@ Then without knowing my private key he will not be able to fool my friend.
 ## file extraction
 
 How can my friend get the hidden file and verify its digital signature?
+He just has to specify a public key for the program to perform the verification of digital signature.
 ```shell
     ./hideme extract \
         --input=./encoded.png \
