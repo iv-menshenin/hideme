@@ -1,6 +1,6 @@
 # hideme - stealth data transfer application
 
-Some time ago I read an interesting article about hidden data transfer. The author said that you could take a binary file and put every bit of it the lower bit of every byte of a PNG file.
+Some time ago I read an interesting article about hidden data transfer. The author said that you could take a binary file and put every bit of it the lower bit of every byte into a PNG file.
 "Okay" - I thought, - "But what if someone tries to read it? What if someone tries to replace that data with their own? How can I protect my data?".
 So I decided to expand on that idea. And here is the result.
 
