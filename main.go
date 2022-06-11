@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/iv-menshenin/hideme/carrier"
 	"github.com/iv-menshenin/hideme/crypt"
@@ -13,28 +14,38 @@ import (
 )
 
 type cmd struct {
-	command    string
-	input      string
-	payload    string
-	output     string
-	privateKey string
-	publicKey  string
-	syncKey    []byte
-	aesKey     []byte
+	command     string
+	input       string
+	payload     string
+	output      string
+	privateKey  string
+	publicKey   string
+	syncKey     []byte
+	aesKey      []byte
+	syncKeyName string
+	aesKeyName  string
+	port        int
 }
 
 const (
 	cmdInject   = "inject"
 	cmdExtract  = "extract"
 	cmdGenerate = "keys"
+	cmdServer   = "server"
 )
+
+var available = []string{cmdInject, cmdExtract, cmdGenerate, cmdServer}
 
 func main() {
 	if len(os.Args) < 2 {
-		log.Fatalf("available commands: %s, %s or %s", cmdInject, cmdExtract, cmdGenerate)
+		log.Fatalf("available commands: %s", strings.Join(available, ", "))
 	}
 
-	var config = parseCmd(os.Args[1], os.Args[2:])
+	config, err := parseCmd(os.Args[1], os.Args[2:])
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	switch config.command {
 	case cmdInject:
 		if config.input == "" {
@@ -66,69 +77,121 @@ func main() {
 	}
 }
 
-func parseCmd(toDo string, args []string) cmd {
-	var command = cmd{command: toDo}
-	var syncKeyFileName string
-	var aesKey string
+func parseCmd(toDo string, args []string) (*cmd, error) {
+	var command *cmd
+	var err error
 
 	switch toDo {
 	case cmdInject:
-		fs := flag.NewFlagSet(toDo, flag.ExitOnError)
-		fs.StringVar(&command.input, "carrier", "", "A PNG file that will carry the valuable information")
-		fs.StringVar(&command.payload, "payload", "", "The file you want to hide from prying eyes")
-		fs.StringVar(&command.output, "out", "", "The final file, which does not differ from the original file. But it contains encrypted information")
-		fs.StringVar(&command.privateKey, "private", "", "Private key file path")
-		fs.StringVar(&syncKeyFileName, "encode-key", "", "Synchronous key file")
-		fs.StringVar(&aesKey, "aes-key", "", "AES key hex data")
-		if err := fs.Parse(args); err != nil {
-			log.Fatal(err)
+		command, err = fillInjectParameters(toDo, args)
+		if err != nil {
+			return nil, err
 		}
 
 	case cmdExtract:
-		fs := flag.NewFlagSet(toDo, flag.ExitOnError)
-		fs.StringVar(&command.input, "input", "", "A file that carries hidden information")
-		fs.StringVar(&command.publicKey, "public", "", "Public key file path")
-		fs.StringVar(&syncKeyFileName, "decode-key", "", "Synchronous key file")
-		fs.StringVar(&aesKey, "aes-key", "", "AES key hex data")
-		if err := fs.Parse(args); err != nil {
-			log.Fatal(err)
+		command, err = fillExtractParameters(toDo, args)
+		if err != nil {
+			return nil, err
+		}
+
+	case cmdGenerate:
+		command, err = fillGenerateParameters(toDo, args)
+		if err != nil {
+			return nil, err
+		}
+
+	case cmdServer:
+		command, err = fillServerParameters(toDo, args)
+		if err != nil {
+			return nil, err
 		}
 
 	case "--help", "-h", "help":
 		fmt.Print(helpInformation)
 		os.Exit(0)
 
-	case cmdGenerate:
-		fs := flag.NewFlagSet(toDo, flag.ExitOnError)
-		fs.StringVar(&command.output, "out", "rsa_key", "Private key file name. `rsa_key` by default.")
-		if err := fs.Parse(args); err != nil {
-			log.Fatal(err)
-		}
-
 	default:
-		log.Fatalf("available commands: %v\nunknown command: %s", []string{cmdInject, cmdExtract, cmdGenerate}, toDo)
+		return nil, fmt.Errorf("available commands: %s\nunknown command: %s", strings.Join(available, ", "), toDo)
 	}
 
-	var err error
-	if syncKeyFileName != "" {
-		command.syncKey, err = os.ReadFile(syncKeyFileName)
-		if err != nil {
-			log.Fatalf("cannot open sync file: %s", err)
+	if command.syncKeyName != "" {
+		if err = command.loadSyncKey(command.syncKeyName); err != nil {
+			return nil, fmt.Errorf("can't load sync key: %v", err)
 		}
 	}
-	if aesKey != "" {
-		command.aesKey, err = hex.DecodeString(aesKey)
-		if err != nil {
-			log.Fatalf("cannot parse aes key as HEX data: %s", err)
+	if command.aesKeyName != "" {
+		if err = command.decodeAesKey(command.aesKeyName); err != nil {
+			return nil, fmt.Errorf("can't decode aes key: %v", err)
 		}
+	}
+	return command, nil
+}
+
+func fillInjectParameters(toDo string, args []string) (*cmd, error) {
+	var command = cmd{command: toDo}
+	fs := flag.NewFlagSet(toDo, flag.ExitOnError)
+	fs.StringVar(&command.input, "carrier", "", "A PNG file that will carry the valuable information")
+	fs.StringVar(&command.payload, "payload", "", "The file you want to hide from prying eyes")
+	fs.StringVar(&command.output, "out", "", "The final file, which does not differ from the original file. But it contains encrypted information")
+	fs.StringVar(&command.privateKey, "private", "", "Private key file path")
+	fs.StringVar(&command.syncKeyName, "encode-key", "", "Synchronous key file")
+	fs.StringVar(&command.aesKeyName, "aes-key", "", "AES key hex data")
+	if err := fs.Parse(args); err != nil {
+		return nil, fmt.Errorf("can't parse arguments: %v", err)
 	}
 
-	return command
+	return &command, nil
+}
+
+func fillExtractParameters(toDo string, args []string) (*cmd, error) {
+	var command = cmd{command: toDo}
+	fs := flag.NewFlagSet(toDo, flag.ExitOnError)
+	fs.StringVar(&command.input, "input", "", "A file that carries hidden information")
+	fs.StringVar(&command.publicKey, "public", "", "Public key file path")
+	fs.StringVar(&command.syncKeyName, "decode-key", "", "Synchronous key file")
+	fs.StringVar(&command.aesKeyName, "aes-key", "", "AES key hex data")
+	if err := fs.Parse(args); err != nil {
+		return nil, fmt.Errorf("can't parse arguments: %v", err)
+	}
+
+	return &command, nil
+}
+
+func (c *cmd) loadSyncKey(syncKey string) (err error) {
+	c.syncKey, err = os.ReadFile(syncKey)
+	return
+}
+
+func (c *cmd) decodeAesKey(aesKey string) (err error) {
+	c.aesKey, err = hex.DecodeString(aesKey)
+	return
+}
+
+func fillGenerateParameters(toDo string, args []string) (*cmd, error) {
+	var command = cmd{command: toDo}
+	fs := flag.NewFlagSet(toDo, flag.ExitOnError)
+	fs.StringVar(&command.output, "out", "rsa_key", "Private key file name. `rsa_key` by default.")
+	if err := fs.Parse(args); err != nil {
+		return nil, fmt.Errorf("can't parse arguments: %v", err)
+	}
+
+	return &command, nil
+}
+
+func fillServerParameters(toDo string, args []string) (*cmd, error) {
+	var command = cmd{command: toDo}
+	fs := flag.NewFlagSet(toDo, flag.ExitOnError)
+	fs.IntVar(&command.port, "port", 8080, "The port that serves requests.")
+	if err := fs.Parse(args); err != nil {
+		return nil, fmt.Errorf("can't parse arguments: %v", err)
+	}
+
+	return &command, nil
 }
 
 const signFileName = "SIGN_FILE"
 
-func inject(config cmd) error {
+func inject(config *cmd) error {
 	msg, err := message.NewFromFile(config.payload)
 	if err != nil {
 		return fmt.Errorf("cannot prepare msg: %w", err)
@@ -175,7 +238,7 @@ func inject(config cmd) error {
 	return nil
 }
 
-func extract(config cmd) error {
+func extract(config *cmd) error {
 	carr, err := getCarrier(config.input)
 	if err != nil {
 		return fmt.Errorf("cannot prepare carrier file: %w", err)
@@ -269,7 +332,7 @@ func getCarrier(fileName string) (injector, error) {
 	return carrier.New(f)
 }
 
-func keysGenerate(config cmd) error {
+func keysGenerate(config *cmd) error {
 	private, err := crypt.GenerateKeys()
 	if err != nil {
 		return fmt.Errorf("cannot generate keys: %w", err)
