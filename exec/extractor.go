@@ -2,9 +2,10 @@ package exec
 
 import (
 	"fmt"
+	"log"
+
 	"github.com/iv-menshenin/hideme/crypt"
 	"github.com/iv-menshenin/hideme/message"
-	"log"
 )
 
 type ExtractConfig interface {
