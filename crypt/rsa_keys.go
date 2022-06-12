@@ -6,8 +6,8 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"io/ioutil"
-	"os"
 )
 
 const keyBitsSize = 2048
@@ -16,21 +16,11 @@ func GenerateKeys() (*rsa.PrivateKey, error) {
 	return rsa.GenerateKey(rand.Reader, keyBitsSize)
 }
 
-func SaveKeysToFile(private *rsa.PrivateKey, fileName string) error {
-	pub, err := os.Create(fmt.Sprintf("%s.pub", fileName))
-	if err != nil {
-		return fmt.Errorf("cannot create file `%s.pub`: %w", fileName, err)
-	}
-	defer pub.Close()
-	prv, err := os.Create(fmt.Sprintf("%s", fileName))
-	if err != nil {
-		return fmt.Errorf("cannot create file `%s`: %w", fileName, err)
-	}
-	defer prv.Close()
-	if err = pem.Encode(pub, &pem.Block{Type: "RSA PUBLIC KEY", Bytes: x509.MarshalPKCS1PublicKey(&private.PublicKey)}); err != nil {
+func SaveKeysToFile(private *rsa.PrivateKey, pub, prv io.Writer) error {
+	if err := pem.Encode(pub, &pem.Block{Type: "RSA PUBLIC KEY", Bytes: x509.MarshalPKCS1PublicKey(&private.PublicKey)}); err != nil {
 		return fmt.Errorf("cannot encode public file: %w", err)
 	}
-	if err = pem.Encode(prv, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(private)}); err != nil {
+	if err := pem.Encode(prv, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(private)}); err != nil {
 		return fmt.Errorf("cannot encode private file: %w", err)
 	}
 	return nil

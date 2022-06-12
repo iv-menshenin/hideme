@@ -56,3 +56,30 @@ func (e *extractor) validate() error {
 	}
 	return nil
 }
+
+func (e *extractor) files() []string {
+	return e.getFiles()
+}
+
+func extractorFromQuery(q Query) (*extractor, error) {
+	carr, err := inputFromQuery(q, "carrier")
+	if err != nil {
+		return nil, fmt.Errorf("can't extract carrier from query: %s", err)
+	}
+	skey, err := syncKeyFromQuery(q, "encode-key")
+	if err != nil {
+		return nil, fmt.Errorf("can't extract sync key from query: %s", err)
+	}
+
+	e := extractor{
+		input:        *carr,
+		output:       output{path: "/tmp/hideme/"},
+		hasSyncKey:   *skey,
+		hasAesKey:    hasAesKey{keyStr: q.StringVal("aes")},
+		hasPublicKey: hasPublicKey{publicKey: q.StringVal("public")},
+	}
+	if err = e.hasAesKey.decodeAesKey(); err != nil {
+		return nil, err
+	}
+	return &e, e.validate()
+}

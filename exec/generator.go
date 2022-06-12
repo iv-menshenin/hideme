@@ -2,21 +2,35 @@ package exec
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/iv-menshenin/hideme/crypt"
 )
 
 type GenerateConfig interface {
-	GetOutput() string
+	SaveFile(string) (io.WriteCloser, error)
 }
 
 func Generate(config GenerateConfig) error {
-	private, err := crypt.GenerateKeys()
+	keys, err := crypt.GenerateKeys()
 	if err != nil {
 		return fmt.Errorf("cannot generate keys: %w", err)
 	}
-	if err = crypt.SaveKeysToFile(private, config.GetOutput()); err != nil {
-		return fmt.Errorf("cannot save keys to file `%s`: %w", config.GetOutput(), err)
+
+	wPrivate, err := config.SaveFile("")
+	if err != nil {
+		return err
+	}
+	defer wPrivate.Close()
+
+	wPublic, err := config.SaveFile(".pub")
+	if err != nil {
+		return err
+	}
+	defer wPublic.Close()
+
+	if err = crypt.SaveKeysToFile(keys, wPrivate, wPublic); err != nil {
+		return err
 	}
 	return nil
 }

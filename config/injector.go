@@ -24,7 +24,7 @@ func (i *injector) initCmdParameters() parser {
 	fs := flag.NewFlagSet("inject", flag.ExitOnError)
 	fs.StringVar(&i.input.value, "carrier", "", "A PNG file that will carry the valuable information")
 	fs.StringVar(&i.payload.fileName, "payload", "", "The file you want to hide from prying eyes")
-	fs.StringVar(&i.output.value, "out", "", "The final file, which does not differ from the original file. But it contains encrypted information")
+	fs.StringVar(&i.output.path, "out", "", "The final file, which does not differ from the original file. But it contains encrypted information")
 	fs.StringVar(&i.privateKey, "private", "", "Private key file path")
 	fs.StringVar(&i.syncKeyName, "encode-key", "", "Synchronous key file")
 	fs.StringVar(&i.keyStr, "aes-key", "", "AES key hex data")
@@ -62,13 +62,17 @@ func (i *injector) validate() error {
 	if i.input.value == "" {
 		return errors.New("`carrier` parameter cannot be empty")
 	}
-	if i.output.value == "" {
+	if i.output.path == "" {
 		return errors.New("`out` parameter cannot be empty")
 	}
 	if i.payload.message == nil {
 		return errors.New("`payload` parameter cannot be empty")
 	}
 	return nil
+}
+
+func (i *injector) files() []string {
+	return i.getFiles()
 }
 
 func injectorFromQuery(q Query) (*injector, error) {
@@ -88,7 +92,7 @@ func injectorFromQuery(q Query) (*injector, error) {
 	i := injector{
 		payload:       *pload,
 		input:         *carr,
-		output:        output{value: makeTmpFileName()},
+		output:        output{path: makeInjectedTmpFileName()},
 		hasSyncKey:    *skey,
 		hasAesKey:     hasAesKey{keyStr: q.StringVal("aes")},
 		hasPrivateKey: hasPrivateKey{privateKey: q.StringVal("private")},
@@ -99,7 +103,7 @@ func injectorFromQuery(q Query) (*injector, error) {
 	return &i, i.validate()
 }
 
-func makeTmpFileName() string {
+func makeInjectedTmpFileName() string {
 	var r [16]byte
 	if _, err := rand.Read(r[:]); err != nil {
 		panic(err)

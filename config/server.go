@@ -30,3 +30,7 @@ func (s *server) validate() error {
 func (s *httpPort) GetPort() int {
 	return s.port
 }
+
+func (s *server) files() []string {
+	return nil
+}

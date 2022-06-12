@@ -2,7 +2,9 @@ package config
 
 import (
 	"io"
+	"log"
 	"net/http"
+	"os"
 
 	"github.com/iv-menshenin/hideme/exec"
 )
@@ -16,6 +18,7 @@ type (
 	argsKeeper interface {
 		initCmdParameters() parser
 		validate() error
+		files() []string
 	}
 	parser interface {
 		Parse(arguments []string) error
@@ -61,6 +64,19 @@ func NewExtractor(args []string) *Config {
 	}
 }
 
+func NewExtractorFromQuery(q Query) (*Config, error) {
+	e, err := extractorFromQuery(q)
+	if err != nil {
+		return nil, err
+	}
+	return &Config{
+		argsKeeper: e,
+		doer: func() error {
+			return exec.Extract(e)
+		},
+	}, nil
+}
+
 func NewGenerator(args []string) *Config {
 	var g = &generator{}
 	return &Config{
@@ -70,6 +86,19 @@ func NewGenerator(args []string) *Config {
 			return exec.Generate(g)
 		},
 	}
+}
+
+func NewGeneratorFromQuery(q Query) (*Config, error) {
+	g, err := generatorFromQuery(q)
+	if err != nil {
+		return nil, err
+	}
+	return &Config{
+		argsKeeper: g,
+		doer: func() error {
+			return exec.Generate(g)
+		},
+	}, nil
 }
 
 func NewServer(args []string, hf http.HandlerFunc) *Config {
@@ -93,4 +122,16 @@ func (c *Config) Validate() error {
 
 func (c *Config) Execute() error {
 	return c.doer()
+}
+
+func (c *Config) Files() []string {
+	return c.files()
+}
+
+func (c *Config) Clear() {
+	for _, f := range c.files() {
+		if err := os.Remove(f); err != nil {
+			log.Println(err)
+		}
+	}
 }

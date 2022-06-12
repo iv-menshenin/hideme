@@ -75,17 +75,20 @@ func inputFromQuery(q Query, keyName string) (*input, error) {
 }
 
 type output struct {
-	value string
-}
-
-func (o *output) GetOutput() string {
-	return o.value
+	path  string
+	files []string
 }
 
 func (o *output) SaveFile(fileName string) (io.WriteCloser, error) {
-	f, err := os.Create(o.value + fileName)
+	fileName = o.path + fileName
+	f, err := os.Create(fileName)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create new file `%s`: %w", fileName, err)
 	}
+	o.files = append(o.files, fileName)
 	return f, nil
+}
+
+func (o *output) getFiles() []string {
+	return o.files
 }
