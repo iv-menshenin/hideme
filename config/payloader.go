@@ -29,6 +29,9 @@ func payloadFromQuery(q Query, keyName string) (*payload, error) {
 	if err != nil {
 		return nil, err
 	}
+	if r == nil {
+		return &payload{}, nil
+	}
 	defer r.Close()
 	data, err := ioutil.ReadAll(r)
 	if err != nil {
@@ -62,6 +65,9 @@ func inputFromQuery(q Query, keyName string) (*input, error) {
 	r, name, err := q.ByteVal(keyName)
 	if err != nil {
 		return nil, err
+	}
+	if r == nil {
+		return &input{}, nil
 	}
 	defer r.Close()
 	carr, err := carrier.New(r)

@@ -40,6 +40,9 @@ func syncKeyFromQuery(q Query, keyName string) (*hasSyncKey, error) {
 	if err != nil {
 		return nil, err
 	}
+	if r == nil {
+		return &hasSyncKey{}, nil
+	}
 	defer r.Close()
 	data, err := ioutil.ReadAll(r)
 	if err != nil {

@@ -18,9 +18,9 @@ func Serve(config ServeConfig, handler http.HandlerFunc) error {
 	var srv = http.Server{
 		Addr:              fmt.Sprintf(":%d", config.GetPort()),
 		Handler:           handler,
-		ReadTimeout:       time.Second * 5,
-		ReadHeaderTimeout: time.Second * 1,
-		WriteTimeout:      time.Second * 15,
+		ReadTimeout:       time.Second * 30,
+		ReadHeaderTimeout: time.Second * 15,
+		WriteTimeout:      time.Second * 30,
 	}
 	go func() {
 		var ch = make(chan os.Signal)
