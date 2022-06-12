@@ -58,7 +58,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func handlerRoot(w http.ResponseWriter, r *http.Request) {
-
+	w.Write([]byte(htmlPage))
 }
 
 func handlerInject(w http.ResponseWriter, r *http.Request) {
