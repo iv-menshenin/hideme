@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"flag"
+	"fmt"
 )
 
 type (
@@ -37,6 +38,12 @@ func (i *injector) validate() error {
 	}
 	if i.payload.value == "" {
 		return errors.New("`payload` parameter cannot be empty")
+	}
+	if err := i.hasAesKey.decodeAesKey(); err != nil {
+		return fmt.Errorf("can't decode aes key: %s", err)
+	}
+	if err := i.hasSyncKey.loadSyncKey(); err != nil {
+		return fmt.Errorf("can't load sync key: %s", err)
 	}
 	return nil
 }

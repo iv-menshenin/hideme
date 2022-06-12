@@ -22,7 +22,7 @@ func Inject(config InjectConfig) error {
 		return fmt.Errorf("cannot prepare msg: %w", err)
 	}
 
-	carr, err := getCarrier(config.GetInput())
+	carr, err := NewCarrierFromFile(config.GetInput())
 	if err != nil {
 		return fmt.Errorf("cannot prepare carrier file: %w", err)
 	}

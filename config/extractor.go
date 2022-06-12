@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"flag"
+	"fmt"
 )
 
 type (
@@ -27,6 +28,12 @@ func (e *extractor) initParameters() parser {
 func (e *extractor) validate() error {
 	if e.input.value == "" {
 		return errors.New("`input` parameter cannot be empty")
+	}
+	if err := e.hasAesKey.decodeAesKey(); err != nil {
+		return fmt.Errorf("can't decode aes key: %s", err)
+	}
+	if err := e.hasSyncKey.loadSyncKey(); err != nil {
+		return fmt.Errorf("can't load sync key: %s", err)
 	}
 	return nil
 }

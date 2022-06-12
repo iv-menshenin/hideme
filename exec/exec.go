@@ -28,13 +28,13 @@ func saveFile(msg dataCarrier) error {
 
 }
 
-type injector interface {
+type Injector interface {
 	Inject([]uint8) error
 	GetPayload() []uint8
 	SaveTo(string) error
 }
 
-func getCarrier(fileName string) (injector, error) {
+func NewCarrierFromFile(fileName string) (Injector, error) {
 	f, err := os.Open(fileName)
 	if err != nil {
 		return nil, err

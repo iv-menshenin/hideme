@@ -16,7 +16,7 @@ type ExtractConfig interface {
 }
 
 func Extract(config ExtractConfig) error {
-	carr, err := getCarrier(config.GetInput())
+	carr, err := NewCarrierFromFile(config.GetInput())
 	if err != nil {
 		return fmt.Errorf("cannot prepare carrier file: %w", err)
 	}

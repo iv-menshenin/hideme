@@ -22,8 +22,11 @@ type (
 	}
 )
 
-func (s *hasSyncKey) loadSyncKey(syncKey string) (err error) {
-	s.syncKey, err = os.ReadFile(syncKey)
+func (s *hasSyncKey) loadSyncKey() (err error) {
+	if s.syncKeyName == "" {
+		return nil
+	}
+	s.syncKey, err = os.ReadFile(s.syncKeyName)
 	return
 }
 
@@ -31,8 +34,11 @@ func (s *hasSyncKey) GetSyncKey() []byte {
 	return s.syncKey
 }
 
-func (a *hasAesKey) decodeAesKey(aesKey string) (err error) {
-	a.aesKey, err = hex.DecodeString(aesKey)
+func (a *hasAesKey) decodeAesKey() (err error) {
+	if a.aesKeyName == "" {
+		return nil
+	}
+	a.aesKey, err = hex.DecodeString(a.aesKeyName)
 	return
 }
 

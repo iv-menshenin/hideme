@@ -27,8 +27,8 @@ func (m *message) fillFileName(r *bytes.Reader) error {
 	}
 
 	fileNameSize := b64int(fileNameSzBy)
-	if fileNameSize > fileNameMaxLen {
-		return fmt.Errorf("cannot extract file name: the maximum is %d, but %d got", fileNameMaxLen, fileNameSize)
+	if fileNameSize > fileNameMaxLen || fileNameSize < 0 {
+		return fmt.Errorf("wrong format")
 	}
 	if _, err = r.Read(m.fileName[:fileNameSize]); err != nil {
 		return fmt.Errorf("cannot extract file name: %w", err)
