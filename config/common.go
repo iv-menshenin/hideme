@@ -8,7 +8,7 @@ type (
 		doer func() error
 	}
 	argsKeeper interface {
-		initParameters() parser
+		initCmdParameters() parser
 		validate() error
 	}
 	parser interface {
@@ -57,7 +57,7 @@ func NewServer() *Config {
 }
 
 func (c *Config) Parse(args []string) error {
-	return c.argsKeeper.initParameters().Parse(args)
+	return c.argsKeeper.initCmdParameters().Parse(args)
 }
 
 func (c *Config) Validate() error {

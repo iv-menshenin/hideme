@@ -14,7 +14,7 @@ type (
 	}
 )
 
-func (s *server) initParameters() parser {
+func (s *server) initCmdParameters() parser {
 	fs := flag.NewFlagSet("serve", flag.ExitOnError)
 	fs.IntVar(&s.port, "port", 8080, "The port that serves requests.")
 	return fs
