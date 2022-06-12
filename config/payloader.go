@@ -2,14 +2,21 @@ package config
 
 import (
 	"github.com/iv-menshenin/hideme/exec"
+	"github.com/iv-menshenin/hideme/message"
 )
 
 type payload struct {
-	value string
+	fileName string
+	message  *message.Message
 }
 
-func (p *payload) GetPayload() string {
-	return p.value
+func (p *payload) prepare() (err error) {
+	p.message, err = message.NewFromFile(p.fileName)
+	return
+}
+
+func (p *payload) GetPayload() *message.Message {
+	return p.message
 }
 
 type input struct {

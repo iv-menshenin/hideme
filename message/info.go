@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-func (m *message) FileName() string {
+func (m *Message) FileName() string {
 	var n = 0
 	for ; n < fileNameMaxLen; n++ {
 		if m.fileName[n] == 0 {
@@ -15,11 +15,11 @@ func (m *message) FileName() string {
 	return string(m.fileName[:n])
 }
 
-func (m *message) Content() []byte {
+func (m *Message) Content() []byte {
 	return m.content
 }
 
-func (m *message) fillFileName(r *bytes.Reader) error {
+func (m *Message) fillFileName(r *bytes.Reader) error {
 	var fileNameSzBy [8]byte
 	_, err := r.Read(fileNameSzBy[:])
 	if err != nil {
@@ -37,7 +37,7 @@ func (m *message) fillFileName(r *bytes.Reader) error {
 	return nil
 }
 
-func (m *message) fillFileContent(r *bytes.Reader) error {
+func (m *Message) fillFileContent(r *bytes.Reader) error {
 	var fileSzBy [8]byte
 	if _, err := r.Read(fileSzBy[:]); err != nil {
 		return fmt.Errorf("cannot extract file size information: %w", err)
@@ -56,7 +56,7 @@ func (m *message) fillFileContent(r *bytes.Reader) error {
 	return nil
 }
 
-func (m *message) setFileName(name string) {
+func (m *Message) setFileName(name string) {
 	nmBytes := []byte(name)
 	if len(nmBytes) > fileNameMaxLen {
 		copy(m.fileName[:fileNameMaxLen], nmBytes[len(nmBytes)-fileNameMaxLen:])
@@ -65,7 +65,7 @@ func (m *message) setFileName(name string) {
 	copy(m.fileName[:fileNameMaxLen], nmBytes[:])
 }
 
-func (m *message) fileNameSize() int {
+func (m *Message) fileNameSize() int {
 	var n = 0
 	for ; n < fileNameMaxLen; n++ {
 		if m.fileName[n] == 0 {

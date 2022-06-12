@@ -10,7 +10,7 @@ import (
 )
 
 type (
-	message struct {
+	Message struct {
 		fileName fileName
 		fileSize int64
 		content  []byte
@@ -20,7 +20,7 @@ type (
 
 const fileNameMaxLen = 64
 
-func NewFromFile(fileName string) (*message, error) {
+func NewFromFile(fileName string) (*Message, error) {
 	f, err := os.Open(fileName)
 	if err != nil {
 		return nil, err
@@ -34,8 +34,8 @@ func NewFromFile(fileName string) (*message, error) {
 	return NewFromBytes(fileName, data)
 }
 
-func NewFromBytes(fileName string, data []byte) (*message, error) {
-	m := message{
+func NewFromBytes(fileName string, data []byte) (*Message, error) {
+	m := Message{
 		fileSize: int64(len(data)),
 		content:  data,
 	}
@@ -43,7 +43,7 @@ func NewFromBytes(fileName string, data []byte) (*message, error) {
 	return &m, nil
 }
 
-func (m *message) Encode() []byte {
+func (m *Message) Encode() []byte {
 	var result bytes.Buffer
 
 	fileNameSize := m.fileNameSize()
@@ -58,12 +58,12 @@ func (m *message) Encode() []byte {
 	return result.Bytes()
 }
 
-func Decode(data []byte) ([]message, error) {
-	var messages []message
+func Decode(data []byte) ([]Message, error) {
+	var messages []Message
 	var r = bytes.NewReader(data)
 
 	for {
-		var m message
+		var m Message
 		if err := m.fillFileName(r); err != nil {
 			return nil, err
 		}

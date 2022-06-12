@@ -20,7 +20,7 @@ var available = []string{cmdInject, cmdExtract, cmdGenerate, cmdServer}
 
 type (
 	Configurator interface {
-		Parse(args []string) error
+		Parse() error
 		Validate() error
 		Execute() error
 	}
@@ -48,16 +48,16 @@ func parseCmd(toDo string, args []string) (Configurator, error) {
 
 	switch toDo {
 	case cmdInject:
-		cmd = config.NewInjector()
+		cmd = config.NewInjector(args)
 
 	case cmdExtract:
-		cmd = config.NewExtractor()
+		cmd = config.NewExtractor(args)
 
 	case cmdGenerate:
-		cmd = config.NewGenerator()
+		cmd = config.NewGenerator(args)
 
 	case cmdServer:
-		cmd = config.NewServer()
+		cmd = config.NewServer(args)
 
 	case "--help", "-h", "help":
 		fmt.Print(helpInformation)
@@ -67,7 +67,7 @@ func parseCmd(toDo string, args []string) (Configurator, error) {
 		return nil, fmt.Errorf("available commands: %s\nunknown command: %s", strings.Join(available, ", "), toDo)
 	}
 
-	err := cmd.Parse(args)
+	err := cmd.Parse()
 	if err != nil {
 		return nil, fmt.Errorf("can't parse parameters: %s", err)
 	}

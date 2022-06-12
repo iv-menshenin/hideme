@@ -8,7 +8,7 @@ import (
 )
 
 type InjectConfig interface {
-	GetPayload() string
+	GetPayload() *message.Message
 	GetInput() Carrier
 	GetOutput() string
 	GetPrivateKey() string
@@ -16,12 +16,8 @@ type InjectConfig interface {
 	GetSyncKey() []byte
 }
 
-func Inject(config InjectConfig) error {
-	msg, err := message.NewFromFile(config.GetPayload())
-	if err != nil {
-		return fmt.Errorf("cannot prepare msg: %w", err)
-	}
-
+func Inject(config InjectConfig) (err error) {
+	msg := config.GetPayload()
 	carr := config.GetInput()
 	secretData := msg.Encode()
 
