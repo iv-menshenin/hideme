@@ -9,7 +9,7 @@ import (
 
 type InjectConfig interface {
 	GetPayload() string
-	GetInput() string
+	GetInput() Carrier
 	GetOutput() string
 	GetPrivateKey() string
 	GetAesKey() []byte
@@ -22,10 +22,7 @@ func Inject(config InjectConfig) error {
 		return fmt.Errorf("cannot prepare msg: %w", err)
 	}
 
-	carr, err := NewCarrierFromFile(config.GetInput())
-	if err != nil {
-		return fmt.Errorf("cannot prepare carrier file: %w", err)
-	}
+	carr := config.GetInput()
 	secretData := msg.Encode()
 
 	if privateKey := config.GetPrivateKey(); privateKey != "" {

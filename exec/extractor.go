@@ -9,17 +9,15 @@ import (
 )
 
 type ExtractConfig interface {
-	GetInput() string
+	GetInput() Carrier
 	GetPublicKey() string
 	GetAesKey() []byte
 	GetSyncKey() []byte
 }
 
 func Extract(config ExtractConfig) error {
-	carr, err := NewCarrierFromFile(config.GetInput())
-	if err != nil {
-		return fmt.Errorf("cannot prepare carrier file: %w", err)
-	}
+	var err error
+	carr := config.GetInput()
 	data := carr.GetPayload()
 
 	if syncKey := config.GetSyncKey(); len(syncKey) > 0 {

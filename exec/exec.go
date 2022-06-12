@@ -1,6 +1,7 @@
 package exec
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 
@@ -28,17 +29,21 @@ func saveFile(msg dataCarrier) error {
 
 }
 
-type Injector interface {
+type Carrier interface {
 	Inject([]uint8) error
 	GetPayload() []uint8
 	SaveTo(string) error
 }
 
-func NewCarrierFromFile(fileName string) (Injector, error) {
+func NewCarrierFromFile(fileName string) (Carrier, error) {
 	f, err := os.Open(fileName)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
 	return carrier.New(f)
+}
+
+func NewCarrierFromBytes(b []byte) (Carrier, error) {
+	return carrier.New(bytes.NewReader(b))
 }

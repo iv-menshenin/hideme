@@ -35,5 +35,8 @@ func (e *extractor) validate() error {
 	if err := e.hasSyncKey.loadSyncKey(); err != nil {
 		return fmt.Errorf("can't load sync key: %s", err)
 	}
+	if err := e.input.prepare(); err != nil {
+		return fmt.Errorf("cannot prepare carrier file: %w", err)
+	}
 	return nil
 }
