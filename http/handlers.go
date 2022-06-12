@@ -25,15 +25,15 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		return
 
 	case "/inject":
-		handlerInject(w, r)
+		handleRequestWithConfiguration(config.NewInjectorFromQuery)(w, r)
 		return
 
 	case "/extract":
-		handlerExtract(w, r)
+		handleRequestWithConfiguration(config.NewExtractorFromQuery)(w, r)
 		return
 
 	case "/generate":
-		handlerGenerate(w, r)
+		handleRequestWithConfiguration(config.NewGeneratorFromQuery)(w, r)
 		return
 	}
 
@@ -46,153 +46,106 @@ func handlerRoot(w http.ResponseWriter, r *http.Request) {
 
 const inputDataMaxSize = 1024 * 1024 * 16
 
-func handlerInject(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseMultipartForm(inputDataMaxSize); err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	cfg, err := config.NewInjectorFromQuery(queryArgs{
-		v: r.URL.Query(),
-		m: r.MultipartForm,
-	})
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	defer cfg.Clear()
+type configCreator func(config.Query) (*config.Config, error)
 
-	if err = cfg.Execute(); err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	if files := cfg.Files(); len(files) > 0 {
-		fn := path.Base(files[0])
-		if len(files) > 1 {
-			fn += ".zip"
+func handleRequestWithConfiguration(createConfig configCreator) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseMultipartForm(inputDataMaxSize); err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
 		}
-		w.Header().Set("Content-Type", "application/octet-stream")
-		w.Header().Set("Content-Disposition", "attachment; filename=\""+fn+"\"")
-		writeFiles(w, files...)
-	}
-}
-
-func handlerExtract(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseMultipartForm(inputDataMaxSize); err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	cfg, err := config.NewExtractorFromQuery(queryArgs{
-		v: r.URL.Query(),
-		m: r.MultipartForm,
-	})
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	defer cfg.Clear()
-
-	if err = cfg.Execute(); err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	if files := cfg.Files(); len(files) > 0 {
-		fn := path.Base(files[0])
-		if len(files) > 1 {
-			fn += ".zip"
+		cfg, err := createConfig(queryArgs{v: r.URL.Query(), m: r.MultipartForm})
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
 		}
-		w.Header().Set("Content-Type", "application/octet-stream")
-		w.Header().Set("Content-Disposition", "attachment; filename=\""+fn+"\"")
-		writeFiles(w, files...)
-	}
-}
+		defer cfg.Clear()
 
-func handlerGenerate(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseMultipartForm(inputDataMaxSize); err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	cfg, err := config.NewGeneratorFromQuery(queryArgs{
-		v: r.URL.Query(),
-		m: r.MultipartForm,
-	})
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	defer cfg.Clear()
-
-	if err = cfg.Execute(); err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	if files := cfg.Files(); len(files) > 0 {
-		fn := path.Base(files[0])
-		if len(files) > 1 {
-			fn += ".zip"
+		if err = cfg.Execute(); err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
-		w.Header().Set("Content-Type", "application/octet-stream")
-		w.Header().Set("Content-Disposition", "attachment; filename=\""+fn+"\"")
-		writeFiles(w, files...)
+		if files := cfg.Files(); len(files) > 0 {
+			fn := path.Base(files[0])
+			if len(files) > 1 {
+				fn += ".zip"
+			}
+			w.Header().Set("Content-Type", "application/octet-stream")
+			w.Header().Set("Content-Disposition", "attachment; filename=\""+fn+"\"")
+			writeFiles(w, files...)
+		}
 	}
 }
 
 func writeFiles(w io.Writer, files ...string) {
 	if len(files) == 1 {
-		file, err := os.Open(files[0])
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		defer file.Close()
-		if _, err = io.Copy(w, file); err != nil {
-			log.Println(err)
-		}
+		writeFile(w, files[0])
 		return
 	}
 
-	var tmpFileZip = makeTmpFileName()
-	f, err := os.Create(tmpFileZip)
+	tmpFileZip, err := zipFiles(files)
 	if err != nil {
 		log.Println(err)
 		return
 	}
+	writeFile(w, tmpFileZip)
+	if e := os.Remove(tmpFileZip); e != nil {
+		log.Println(e)
+	}
+}
+
+func zipFiles(files []string) (string, error) {
+	var tmpFileZip = makeTmpFileName()
+
+	f, err := os.Create(tmpFileZip)
+	if err != nil {
+		return "", err
+	}
 	defer func() {
-		f.Close()
-		os.Remove(tmpFileZip)
+		if e := f.Close(); e != nil {
+			log.Println(e)
+		}
 	}()
 
 	z := zip.NewWriter(f)
 	for _, fileName := range files {
 		fw, err := z.Create(path.Base(fileName))
 		if err != nil {
-			log.Println(err)
-			return
+			return "", err
 		}
 		data, err := os.ReadFile(fileName)
 		if err != nil {
-			log.Println(err)
-			return
+			return "", err
 		}
 		_, err = fw.Write(data)
 		if err != nil {
-			log.Println(err)
-			return
+			return "", err
 		}
 	}
 	if err = z.Close(); err != nil {
+		return "", err
+	}
+	return tmpFileZip, nil
+}
+
+func writeFile(w io.Writer, file string) {
+	f, err := os.Open(file)
+	if err != nil {
 		log.Println(err)
 		return
 	}
-	writeFiles(w, tmpFileZip)
+	defer func() {
+		if e := f.Close(); e != nil {
+			log.Println(e)
+		}
+	}()
+	if _, err = io.Copy(w, f); err != nil {
+		log.Println(err)
+	}
+	return
 }
 
 func makeTmpFileName() string {
