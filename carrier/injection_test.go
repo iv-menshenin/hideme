@@ -68,7 +68,13 @@ func makePNGCarrier(t *testing.T, data []uint8, fileName string) {
 		t.Errorf("cannot inject data: %s", err)
 		return
 	}
-	if err = img.SaveTo(fileName); err != nil {
+	file, err := os.Create(fileName)
+	if err != nil {
+		t.Errorf("cannot create file %s: %s", fileName, err)
+		return
+	}
+	defer file.Close()
+	if err = img.SaveTo(file); err != nil {
 		t.Errorf("cannot save data: %s", err)
 		return
 	}
