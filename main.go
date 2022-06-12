@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/iv-menshenin/hideme/http"
 	"log"
 	"os"
 	"strings"
@@ -57,7 +58,7 @@ func parseCmd(toDo string, args []string) (Configurator, error) {
 		cmd = config.NewGenerator(args)
 
 	case cmdServer:
-		cmd = config.NewServer(args)
+		cmd = config.NewServer(args, http.Handler)
 
 	case "--help", "-h", "help":
 		fmt.Print(helpInformation)

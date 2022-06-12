@@ -8,6 +8,7 @@ import (
 
 type (
 	extractor struct {
+		output
 		input
 
 		hasSyncKey
@@ -21,7 +22,7 @@ func (e *extractor) initCmdParameters() parser {
 	fs.StringVar(&e.input.value, "input", "", "A file that carries hidden information")
 	fs.StringVar(&e.publicKey, "public", "", "Public key file path")
 	fs.StringVar(&e.syncKeyName, "decode-key", "", "Synchronous key file")
-	fs.StringVar(&e.aesKeyName, "aes-key", "", "AES key hex data")
+	fs.StringVar(&e.keyStr, "aes-key", "", "AES key hex data")
 	return cmdExtractorParser{
 		e:      e,
 		parser: fs,

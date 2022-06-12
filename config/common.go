@@ -1,6 +1,11 @@
 package config
 
-import "github.com/iv-menshenin/hideme/exec"
+import (
+	"io"
+	"net/http"
+
+	"github.com/iv-menshenin/hideme/exec"
+)
 
 type (
 	Config struct {
@@ -17,7 +22,7 @@ type (
 	}
 	Query interface {
 		StringVal(string) string
-		ByteVal(string) ([]byte, error)
+		ByteVal(string) (io.ReadCloser, string, error)
 	}
 )
 
@@ -30,6 +35,19 @@ func NewInjector(args []string) *Config {
 			return exec.Inject(i)
 		},
 	}
+}
+
+func NewInjectorFromQuery(q Query) (*Config, error) {
+	i, err := injectorFromQuery(q)
+	if err != nil {
+		return nil, err
+	}
+	return &Config{
+		argsKeeper: i,
+		doer: func() error {
+			return exec.Inject(i)
+		},
+	}, nil
 }
 
 func NewExtractor(args []string) *Config {
@@ -54,13 +72,13 @@ func NewGenerator(args []string) *Config {
 	}
 }
 
-func NewServer(args []string) *Config {
+func NewServer(args []string, hf http.HandlerFunc) *Config {
 	var s = &server{}
 	return &Config{
 		argsKeeper: s,
 		args:       args,
 		doer: func() error {
-			return exec.Serve(s)
+			return exec.Serve(s, hf)
 		},
 	}
 }

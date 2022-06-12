@@ -1,6 +1,8 @@
 package config
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"flag"
 	"fmt"
@@ -25,7 +27,7 @@ func (i *injector) initCmdParameters() parser {
 	fs.StringVar(&i.output.value, "out", "", "The final file, which does not differ from the original file. But it contains encrypted information")
 	fs.StringVar(&i.privateKey, "private", "", "Private key file path")
 	fs.StringVar(&i.syncKeyName, "encode-key", "", "Synchronous key file")
-	fs.StringVar(&i.aesKeyName, "aes-key", "", "AES key hex data")
+	fs.StringVar(&i.keyStr, "aes-key", "", "AES key hex data")
 	return cmdInjectorParser{
 		i:      i,
 		parser: fs,
@@ -69,14 +71,38 @@ func (i *injector) validate() error {
 	return nil
 }
 
-func (p cmdInjectorParser) LoadFromQuery(q Query) error {
-	_ = injector{
-		payload:       payload{},
-		input:         input{},
-		output:        output{},
-		hasSyncKey:    hasSyncKey{},
-		hasAesKey:     hasAesKey{},
-		hasPrivateKey: hasPrivateKey{},
+func injectorFromQuery(q Query) (*injector, error) {
+	carr, err := inputFromQuery(q, "carrier")
+	if err != nil {
+		return nil, fmt.Errorf("can't extract carrier from query: %s", err)
 	}
-	return nil
+	pload, err := payloadFromQuery(q, "payload")
+	if err != nil {
+		return nil, fmt.Errorf("can't extract payload from query: %s", err)
+	}
+	skey, err := syncKeyFromQuery(q, "encode-key")
+	if err != nil {
+		return nil, fmt.Errorf("can't extract sync key from query: %s", err)
+	}
+
+	i := injector{
+		payload:       *pload,
+		input:         *carr,
+		output:        output{value: makeTmpFileName()},
+		hasSyncKey:    *skey,
+		hasAesKey:     hasAesKey{keyStr: q.StringVal("aes")},
+		hasPrivateKey: hasPrivateKey{privateKey: q.StringVal("private")},
+	}
+	if err = i.hasAesKey.decodeAesKey(); err != nil {
+		return nil, err
+	}
+	return &i, i.validate()
+}
+
+func makeTmpFileName() string {
+	var r [16]byte
+	if _, err := rand.Read(r[:]); err != nil {
+		panic(err)
+	}
+	return fmt.Sprintf("/tmp/hideme/%s.png", hex.EncodeToString(r[:]))
 }

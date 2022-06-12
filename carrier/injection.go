@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"image/color"
 	"image/png"
+	"io"
 	"math"
-	"os"
 
 	"github.com/iv-menshenin/hideme/nibbles"
 )
@@ -112,11 +112,6 @@ func int64b(i int64) (result [8]byte) {
 	return
 }
 
-func (c *carrier) SaveTo(fileName string) error {
-	f, err := os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
+func (c *carrier) SaveTo(f io.Writer) error {
 	return png.Encode(f, c.new)
 }

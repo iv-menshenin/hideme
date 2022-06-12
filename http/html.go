@@ -1,4 +1,4 @@
-package exec
+package http
 
 const htmlPage = `<!DOCTYPE html>
 <html>

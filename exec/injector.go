@@ -2,18 +2,20 @@ package exec
 
 import (
 	"fmt"
+	"io"
 
+	"github.com/iv-menshenin/hideme/carrier"
 	"github.com/iv-menshenin/hideme/crypt"
 	"github.com/iv-menshenin/hideme/message"
 )
 
 type InjectConfig interface {
 	GetPayload() *message.Message
-	GetInput() Carrier
-	GetOutput() string
+	GetInput() carrier.Carrier
 	GetPrivateKey() string
 	GetAesKey() []byte
 	GetSyncKey() []byte
+	SaveFile(string) (io.WriteCloser, error)
 }
 
 func Inject(config InjectConfig) (err error) {
@@ -50,7 +52,13 @@ func Inject(config InjectConfig) (err error) {
 	if err = carr.Inject(secretData); err != nil {
 		return fmt.Errorf("cannot inject secret data to image: %w", err)
 	}
-	if err = carr.SaveTo(config.GetOutput()); err != nil {
+
+	w, err := config.SaveFile("")
+	if err != nil {
+		return fmt.Errorf("cannot save image file: %w", err)
+	}
+	defer w.Close()
+	if err = carr.SaveTo(w); err != nil {
 		return fmt.Errorf("cannot save image file: %w", err)
 	}
 	return nil

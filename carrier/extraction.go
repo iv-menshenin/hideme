@@ -1,8 +1,9 @@
 package carrier
 
 import (
-	"github.com/iv-menshenin/hideme/nibbles"
 	"image/color"
+
+	"github.com/iv-menshenin/hideme/nibbles"
 )
 
 func (c *carrier) GetPayload() []uint8 {
