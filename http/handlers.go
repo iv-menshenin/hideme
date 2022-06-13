@@ -9,7 +9,6 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
-	"net/url"
 	"os"
 	"path"
 
@@ -55,7 +54,7 @@ func handleRequestWithConfiguration(createConfig configCreator) http.HandlerFunc
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		cfg, err := createConfig(queryArgs{v: r.URL.Query(), m: r.MultipartForm})
+		cfg, err := createConfig(queryArgs{m: r.MultipartForm})
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusBadRequest)
@@ -157,12 +156,15 @@ func makeTmpFileName() string {
 }
 
 type queryArgs struct {
-	v url.Values
 	m *multipart.Form
 }
 
 func (a queryArgs) StringVal(key string) string {
-	return a.v.Get(key)
+	val := a.m.Value[key]
+	if len(val) == 0 {
+		return ""
+	}
+	return val[0]
 }
 
 func (a queryArgs) ByteVal(key string) (r io.ReadCloser, name string, err error) {
