@@ -3,7 +3,7 @@ CURR=$(pwd)
 DOCF=$CURR/build/Dockerfile
 
 echo "##teamcity[blockOpened name='BuildBinary']"
-cd $CURR/cmd/hideme/ && go build -o ../../build/bin/hideme || exit 1
+cd $CURR/cmd/hideme/ && GOOS="linux" GOARCH="amd64" go build -o ../../build/bin/hideme || exit 1
 echo "##teamcity[blockClosed name='BuildBinary']"
 
 echo "##teamcity[blockOpened name='BuildDockerfile']"
