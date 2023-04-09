@@ -52,12 +52,14 @@ func handleRequestWithConfiguration(createConfig configCreator) http.HandlerFunc
 		if err := r.ParseMultipartForm(inputDataMaxSize); err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusBadRequest)
+			writeErrorAsPayload(w, err)
 			return
 		}
 		cfg, err := createConfig(queryArgs{m: r.MultipartForm})
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusBadRequest)
+			writeErrorAsPayload(w, err)
 			return
 		}
 		defer cfg.Clear()
@@ -65,6 +67,7 @@ func handleRequestWithConfiguration(createConfig configCreator) http.HandlerFunc
 		if err = cfg.Execute(); err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
+			writeErrorAsPayload(w, err)
 			return
 		}
 		if files := cfg.Files(); len(files) > 0 {
@@ -175,4 +178,9 @@ func (a queryArgs) ByteVal(key string) (r io.ReadCloser, name string, err error)
 	name = f[0].Filename
 	r, err = f[0].Open()
 	return
+}
+
+func writeErrorAsPayload(w io.Writer, err error) {
+	w.Write([]byte("something went wrong: "))
+	w.Write([]byte(fmt.Sprintf("<%T> %s", err, err)))
 }
