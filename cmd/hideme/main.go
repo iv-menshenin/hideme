@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/iv-menshenin/hideme/http"
 	"log"
 	"os"
 	"strings"
 
 	"github.com/iv-menshenin/hideme/config"
+	"github.com/iv-menshenin/hideme/http"
 )
 
 const (
