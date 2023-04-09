@@ -29,7 +29,7 @@ func Generate(config GenerateConfig) error {
 	}
 	defer wPublic.Close()
 
-	if err = crypt.SaveKeysToFile(keys, wPrivate, wPublic); err != nil {
+	if err = crypt.SaveKeysToFile(keys, wPublic, wPrivate); err != nil {
 		return err
 	}
 	return nil
